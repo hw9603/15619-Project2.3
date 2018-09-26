@@ -1,0 +1,60 @@
+# Welcome to Serverless!
+#
+# This file is the main config file for your service.
+# It's very minimal at this point and uses default values.
+# You can always add more config options for more control.
+# We've included some commented out config examples here.
+# Just uncomment any of them to get that config option.
+#
+# For full config options, check the docs:
+#    docs.serverless.com
+#
+# Happy Coding!
+
+service: cloud-tube # NOTE: update this with your service name
+
+# You can pin your service to only deploy with a specific Serverless version
+# Check out our docs for more details
+# frameworkVersion: "=X.X.X"
+
+provider:
+  name: aws
+  runtime: nodejs8.10
+
+# you can overwrite defaults here
+#  stage: dev
+#  region: us-east-1
+
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "s3:*"
+      Resource: "*"
+
+
+# you can define service wide environment variables here
+  environment:
+    NODE_ENV: production
+
+# you can add packaging information here
+package:
+  include:
+    - .next/**
+    - static/**
+
+functions:
+  web:
+    handler: web.handler
+
+#    The following are a few example events you can configure
+#    NOTE: Please make sure to change your handler code to work with those events
+#    Check the event documentation for details
+    events:
+      - http: ANY /
+      - http: 'ANY {proxy+}'
+      - http:
+          method: GET
+          path: /static/{any+}
+      - http:
+          method: GET
+          path: /_next/{proxy+}
