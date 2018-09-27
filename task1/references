@@ -7,6 +7,12 @@
             "url":"https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/concat",
             "code":"javascript demo for array.concat()",
             "description":"I learned how to concatenate arrays in javascript."
+        },
+        {
+            "title":"Leveraging Predefined Interfaces for Creating Handler (Java)",
+            "url":"https://docs.aws.amazon.com/lambda/latest/dg/java-handler-using-predefined-interfaces.html#java-handler-using-predefined-interfaces-pojo-handler-class",
+            "code":"",
+            "description":"I learned how to use POJO input/output to create handler in order to generate output for the AWS part."
         }
     ],
     "collaborators":[
