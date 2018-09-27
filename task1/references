@@ -1,12 +1,12 @@
 {
     "referenceGuide" : "Cite all the reference sources in the required format. Proper citations will help you avoid unnecessary trouble. Read JSON grammar from Internet if needed.",
-    "myAndrewId":"<andrewId>",
+    "myAndrewId":"wenhe",
     "websites":[
         {
-            "title":"<title of the page>",
-            "url":"<url>",
-            "code":"<in which code you use the snippet or the idea>",
-            "description":"<additional information you find it necessary to provide>"
+            "title":"Array.prototype.concat()",
+            "url":"https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/concat",
+            "code":"javascript demo for array.concat()",
+            "description":"I learned how to concatenate arrays in javascript."
         }
     ],
     "collaborators":[
