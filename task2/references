@@ -1,12 +1,12 @@
 {
     "referenceGuide" : "Cite all the reference sources in the required format. Proper citations will help you avoid unnecessary trouble. Read JSON grammar from Internet if needed.",
-    "myAndrewId":"<andrewId>",
+    "myAndrewId":"wenhe",
     "websites":[
         {
-            "title":"<title of the page>",
-            "url":"<url>",
-            "code":"<in which code you use the snippet or the idea>",
-            "description":"<additional information you find it necessary to provide>"
+            "title":"Step 2.1: Create a Deployment Package",
+            "url":"https://docs.aws.amazon.com/lambda/latest/dg/with-s3-example-deployment-pkg.html",
+            "code":"the example Java code that reads incoming Amazon S3 events and creates a thumbnail",
+            "description":"I learned how to handle requests trigered by S3Event."
         }
     ],
     "collaborators":[
