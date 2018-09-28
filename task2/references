@@ -1,12 +1,30 @@
 {
     "referenceGuide" : "Cite all the reference sources in the required format. Proper citations will help you avoid unnecessary trouble. Read JSON grammar from Internet if needed.",
-    "myAndrewId":"wenhe",
+    "myAndrewId":"",
     "websites":[
         {
             "title":"Step 2.1: Create a Deployment Package",
             "url":"https://docs.aws.amazon.com/lambda/latest/dg/with-s3-example-deployment-pkg.html",
             "code":"the example Java code that reads incoming Amazon S3 events and creates a thumbnail",
             "description":"I learned how to handle requests trigered by S3Event."
+        },
+        {
+            "title":"Step 2.1: Create a Lambda Function Deployment Package",
+            "url":"https://docs.aws.amazon.com/lambda/latest/dg/with-sns-create-package.html",
+            "code":"the example Java code that reads SNS message",
+            "description":"I learned how to handle requests trigered by SNS topic."
+        },
+        {
+            "title":"How to store a downloaded file object from S3 to a local directory",
+            "url":"https://stackoverflow.com/questions/21229493/how-to-store-a-downloaded-file-object-from-s3-to-a-local-directory",
+            "code":"the second answer",
+            "description":"I learned how to download the file in S3 bucket to local directory."
+        },
+        {
+            "title":"How to list the files in current directory?",
+            "url":"https://stackoverflow.com/questions/15482423/how-to-list-the-files-in-current-directory",
+            "code":"the second answer",
+            "description":"I learned how to retrieve files in the currect directory."
         }
     ],
     "collaborators":[

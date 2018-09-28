@@ -11,122 +11,107 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.event.S3EventNotification.S3EventNotificationRecord;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 
-import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
-import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.lang.Process;
+import java.lang.Runtime;
 import java.net.URLDecoder;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Iterator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.imageio.ImageIO;
+import org.json.simple.JSONObject;
+import org.json.simple.JSONArray;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
-public class ThumbnailGenerateService implements RequestHandler<S3Event, String> {
-    private static final float MAX_WIDTH = 100;
-    private static final float MAX_HEIGHT = 100;
-    private final String JPG_TYPE = (String) "jpg";
-    private final String JPG_MIME = (String) "image/jpeg";
-    private final String PNG_TYPE = (String) "png";
-    private final String PNG_MIME = (String) "image/png";
+public class ThumbnailGenerateService implements RequestHandler<SNSEvent, String> {
+    // private static final float MAX_WIDTH = 100;
+    // private static final float MAX_HEIGHT = 100;
+    // private final String JPG_TYPE = (String) "jpg";
+    // private final String JPG_MIME = (String) "image/jpeg";
+    // private final String PNG_TYPE = (String) "png";
+    // private final String PNG_MIME = (String) "image/png";
     LambdaLogger lambdaLogger = LambdaRuntime.getLogger();
 
-    public String handleRequest(S3Event s3event, Context context) {
-        lambdaLogger.log("miaomiaomiao: ");
+    public String handleRequest(SNSEvent request, Context context) {
+        String timeStamp = new SimpleDateFormat("yyyy-MM-dd_HH:mm:ss").format(Calendar.getInstance().getTime());
+        context.getLogger().log("Invocation started: " + timeStamp);
+
+        String message = request.getRecords().get(0).getSNS().getMessage();
+        context.getLogger().log(message);
+        JSONParser jsonParser = new JSONParser();
         try {
-            lambdaLogger.log("kakakakakakka: ");
-            S3EventNotificationRecord record = s3event.getRecords().get(0);
-            lambdaLogger.log("yayayayayaa: ");
-            String srcBucket = record.getS3().getBucket().getName();
-            lambdaLogger.log("hahahahahahaha: " + srcBucket);
-            // Object key may have spaces or unicode non-ASCII characters.
-            String srcKey = record.getS3().getObject().getKey()
-                    .replace('+', ' ');
-            srcKey = URLDecoder.decode(srcKey, "UTF-8");
+            JSONObject jsonObject = (JSONObject)jsonParser.parse(message);
+            JSONArray records = (JSONArray)jsonObject.get("Records");
+            Iterator<JSONObject> iterator = records.iterator();
+            JSONObject s3 = (JSONObject)((JSONObject)iterator.next()).get("s3");
+            JSONObject bucket = (JSONObject)s3.get("bucket");
+            JSONObject object = (JSONObject)s3.get("object");
 
-            // String dstBucket = srcBucket + "resized";
-            String dstBucket = "wenhe-thumbnail-bucket";
-            String dstKey = "resized-" + srcKey;
+            String srcBucket = (String)bucket.get("name");
+            context.getLogger().log(srcBucket);
+            String srcKey = (String)object.get("key");
+            context.getLogger().log(srcKey);
 
-            // Sanity check: validate that source and destination are different
-            // buckets.
-            if (srcBucket.equals(dstBucket)) {
-                System.out
-                        .println("Destination bucket must not match source bucket.");
-                return "equal";
-            }
-
-            // Infer the image type.
-            Matcher matcher = Pattern.compile(".*\\.([^\\.]*)").matcher(srcKey);
-            if (!matcher.matches()) {
-                System.out.println("Unable to infer image type for key "
-                        + srcKey);
-                return "nomatch";
-            }
-            String imageType = matcher.group(1);
-            if (!(JPG_TYPE.equals(imageType)) && !(PNG_TYPE.equals(imageType))) {
-                System.out.println("Skipping non-image " + srcKey);
-                return "nonimage";
-            }
-
-            // Download the image from S3 into a stream
             AmazonS3 s3Client = new AmazonS3Client();
-            S3Object s3Object = s3Client.getObject(new GetObjectRequest(
-                    srcBucket, srcKey));
-            InputStream objectData = s3Object.getObjectContent();
+            s3Client.getObject(new GetObjectRequest(
+                    srcBucket, srcKey), new File("/tmp/" + srcKey));
 
-            // Read the source image
-            BufferedImage srcImage = ImageIO.read(objectData);
-            int srcHeight = srcImage.getHeight();
-            int srcWidth = srcImage.getWidth();
-            // Infer the scaling factor to avoid stretching the image
-            // unnaturally
-            float scalingFactor = Math.min(MAX_WIDTH / srcWidth, MAX_HEIGHT
-                    / srcHeight);
-            int width = (int) (scalingFactor * srcWidth);
-            int height = (int) (scalingFactor * srcHeight);
+            String key_name = srcKey.split("\\.")[0];
+            String key_extension = srcKey.split("\\.")[1];
 
-            BufferedImage resizedImage = new BufferedImage(width, height,
-                    BufferedImage.TYPE_INT_RGB);
-            Graphics2D g = resizedImage.createGraphics();
-            // Fill with white before applying semi-transparent (alpha) images
-            g.setPaint(Color.white);
-            g.fillRect(0, 0, width, height);
-            // Simple bilinear resize
-            // If you want higher quality algorithms, check this link:
-            // https://today.java.net/pub/a/today/2007/04/03/perils-of-image-getscaledinstance.html
-            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                    RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-            g.drawImage(srcImage, 0, 0, width, height, null);
-            g.dispose();
+            Runtime rt = Runtime.getRuntime();
 
-            // Re-encode image to target format
-            ByteArrayOutputStream os = new ByteArrayOutputStream();
-            ImageIO.write(resizedImage, imageType, os);
-            InputStream is = new ByteArrayInputStream(os.toByteArray());
-            // Set Content-Length and Content-Type
-            ObjectMetadata meta = new ObjectMetadata();
-            meta.setContentLength(os.size());
-            if (JPG_TYPE.equals(imageType)) {
-                meta.setContentType(JPG_MIME);
+            s3Client.getObject(new GetObjectRequest(
+                    "wenhe-ffmpeg", "ffmpeg"), new File("/tmp/ffmpeg"));
+
+            context.getLogger().log("/tmp/ffmpeg -i /tmp/" + srcKey + " -y -vf fps=1 /tmp/"
+                + key_name + "_%d.png");
+            rt.exec("chmod 777 /tmp/ffmpeg");
+
+            String[] command = { "/bin/bash", "-c", "/tmp/ffmpeg -i /tmp/" + srcKey + " -y -vf fps=1 /tmp/"
+                + key_name + "_%d.png"};
+            Process ps = rt.exec(command);
+            context.getLogger().log("execute ffmpeg.");
+
+            String dstBucket = "wenhe-thumbnail-bucket";
+
+            context.getLogger().log("find files...");
+            File currDir = new File("/tmp/");
+            File[] files = currDir.listFiles();
+            for (File f : files) {
+                if (f.isFile() && f.getName().startsWith(key_name + "_")) {
+                    context.getLogger().log(f.getName());
+                    s3Client.putObject(new PutObjectRequest(
+                        dstBucket, f.getName(), new File("/tmp/" + f.getName())));
+                    context.getLogger().log("PUT!!");
+                }
             }
-            if (PNG_TYPE.equals(imageType)) {
-                meta.setContentType(PNG_MIME);
-            }
+            context.getLogger().log("Put all files in " + dstBucket);
 
-            // Uploading to S3 destination bucket
-            System.out.println("Writing to: " + dstBucket + "/" + dstKey);
-            s3Client.putObject(dstBucket, dstKey, is, meta);
-            System.out.println("Successfully resized " + srcBucket + "/"
-                    + srcKey + " and uploaded to " + dstBucket + "/" + dstKey);
-            return "Ok";
+        } catch (ParseException e) {
+            // caught
+            context.getLogger().log("parsing error!");
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            // caught
+            context.getLogger().log("IO exception!");
+            context.getLogger().log(e.getMessage());
         }
+
+        timeStamp = new SimpleDateFormat("yyyy-MM-dd_HH:mm:ss").format(Calendar.getInstance().getTime());
+        context.getLogger().log("Invocation completed: " + timeStamp);
+        return "OK";
     }
 }
