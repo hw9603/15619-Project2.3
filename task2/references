@@ -25,6 +25,12 @@
             "url":"https://stackoverflow.com/questions/15482423/how-to-list-the-files-in-current-directory",
             "code":"the second answer",
             "description":"I learned how to retrieve files in the currect directory."
+        },
+        {
+            "title":"java runtime.getruntime() getting output from executing a command line program",
+            "url":"https://stackoverflow.com/questions/5711084/java-runtime-getruntime-getting-output-from-executing-a-command-line-program",
+            "code":"the first answer",
+            "description":"I learned how to log the output of executing a binary file in Java program."
         }
     ],
     "collaborators":[
