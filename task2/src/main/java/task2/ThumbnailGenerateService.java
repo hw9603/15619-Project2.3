@@ -21,12 +21,14 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.InterruptedException;
 import java.lang.Process;
 import java.lang.Runtime;
 import java.net.URLDecoder;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Iterator;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -49,10 +51,11 @@ public class ThumbnailGenerateService implements RequestHandler<SNSEvent, String
         String timeStamp = new SimpleDateFormat("yyyy-MM-dd_HH:mm:ss").format(Calendar.getInstance().getTime());
         context.getLogger().log("Invocation started: " + timeStamp);
 
-        String message = request.getRecords().get(0).getSNS().getMessage();
-        context.getLogger().log(message);
-        JSONParser jsonParser = new JSONParser();
         try {
+            String message = request.getRecords().get(0).getSNS().getMessage();
+            context.getLogger().log(message);
+
+            JSONParser jsonParser = new JSONParser();
             JSONObject jsonObject = (JSONObject)jsonParser.parse(message);
             JSONArray records = (JSONArray)jsonObject.get("Records");
             Iterator<JSONObject> iterator = records.iterator();
@@ -77,6 +80,8 @@ public class ThumbnailGenerateService implements RequestHandler<SNSEvent, String
             s3Client.getObject(new GetObjectRequest(
                     "wenhe-ffmpeg", "ffmpeg"), new File("/tmp/ffmpeg"));
 
+            TimeUnit.SECONDS.sleep(5);
+
             context.getLogger().log("/tmp/ffmpeg -i /tmp/" + srcKey + " -y -vf fps=1 /tmp/"
                 + key_name + "_%d.png");
             rt.exec("chmod 777 /tmp/ffmpeg");
@@ -84,6 +89,31 @@ public class ThumbnailGenerateService implements RequestHandler<SNSEvent, String
             String[] command = { "/bin/bash", "-c", "/tmp/ffmpeg -i /tmp/" + srcKey + " -y -vf fps=1 /tmp/"
                 + key_name + "_%d.png"};
             Process ps = rt.exec(command);
+
+
+            BufferedReader stdInput = new BufferedReader(new
+                 InputStreamReader(ps.getInputStream()));
+
+            BufferedReader stdError = new BufferedReader(new
+                 InputStreamReader(ps.getErrorStream()));
+
+            // read the output from the command
+            context.getLogger().log("Here is the standard output of the command:\n");
+            String s = null;
+            while ((s = stdInput.readLine()) != null) {
+                context.getLogger().log(s);
+            }
+
+            // read any errors from the attempted command
+            context.getLogger().log("Here is the standard error of the command (if any):\n");
+            while ((s = stdError.readLine()) != null) {
+                context.getLogger().log(s);
+            }
+
+
+
+
+
             context.getLogger().log("execute ffmpeg.");
 
             String dstBucket = "wenhe-thumbnail-bucket";
@@ -102,11 +132,12 @@ public class ThumbnailGenerateService implements RequestHandler<SNSEvent, String
             context.getLogger().log("Put all files in " + dstBucket);
 
         } catch (ParseException e) {
-            // caught
-            context.getLogger().log("parsing error!");
+            context.getLogger().log(e.getMessage());
         } catch (IOException e) {
-            // caught
-            context.getLogger().log("IO exception!");
+            context.getLogger().log(e.getMessage());
+        } catch (NullPointerException e) {
+            context.getLogger().log(e.getMessage());
+        } catch (InterruptedException e) {
             context.getLogger().log(e.getMessage());
         }
 
