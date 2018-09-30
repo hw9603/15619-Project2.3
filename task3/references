@@ -3,10 +3,16 @@
     "myAndrewId":"<andrewId>",
     "websites":[
         {
-            "title":"<title of the page>",
-            "url":"<url>",
+            "title":"Java JSON Http Upload example",
+            "url":"https://forums.aws.amazon.com/thread.jspa?threadID=160817",
             "code":"<in which code you use the snippet or the idea>",
-            "description":"<additional information you find it necessary to provide>"
+            "description":"I learned the way of uploading documents to cloudsearch. It seemed that it is still okay to use the deprecated constructor."
+        },
+        {
+            "title":"Analyzing Images Stored in an Amazon S3 Bucket",
+            "url":"https://docs.aws.amazon.com/rekognition/latest/dg/images-s3.html",
+            "code":"The Java example for detecting labels using Rekognition",
+            "description":"I learned the way to detect labels using Rekognition in Java."
         }
     ],
     "collaborators":[

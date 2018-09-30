@@ -30,7 +30,6 @@ import com.amazonaws.services.s3.event.S3EventNotification.S3EventNotificationRe
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
-// import com.amazonaws.services.s3.model.S3Object;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -62,16 +61,13 @@ import org.json.simple.parser.ParseException;
 public class LabelThumbnailService implements RequestHandler<S3Event, String> {
 
     /**
-     * handleRequest function
+     * handleRequest function.
      */
     public String handleRequest(S3Event s3event, Context context) {
         try {
             S3EventNotificationRecord record = s3event.getRecords().get(0);
-            String srcBucket = record.getS3().getBucket().getName();
             String srcKey = record.getS3().getObject().getKey();
             AmazonS3 s3Client = new AmazonS3Client();
-            // S3Object s3Object = s3Client.getObject(new GetObjectRequest(
-            //         srcBucket, srcKey));
             String srcName = srcKey.split("\\.")[0];
 
             JSONObject documentJson = new JSONObject();
@@ -81,8 +77,8 @@ public class LabelThumbnailService implements RequestHandler<S3Event, String> {
             field.put("key", srcName);
             JSONArray labelsArray = new JSONArray();
 
-
             AmazonRekognition rekognitionClient = AmazonRekognitionClientBuilder.defaultClient();
+            String srcBucket = record.getS3().getBucket().getName();
             DetectLabelsRequest request = new DetectLabelsRequest()
                     .withImage(new Image()
                     .withS3Object(new S3Object()
@@ -102,17 +98,11 @@ public class LabelThumbnailService implements RequestHandler<S3Event, String> {
 
             InputStream document = new ByteArrayInputStream(documentString.getBytes());
 
-            // AWSCredentialsProvider credentialsProvider = new DefaultAWSCredentialsProviderChain();
-            BasicAWSCredentials awsCreds = new BasicAWSCredentials("AKIAJRZL5C3DD4ELGECA", "DqONcQylceRrNpmArw5+8+VHmxj3G1hHV0y8+uQE");
-            String endPoint = "http://doc-task3-domain-nguaqleuaujqdpfrwau5lalk2m.us-east-1.cloudsearch.amazonaws.com";
-            // AmazonCloudSearchDomain csClient = AmazonCloudSearchDomainClientBuilder
-            //     .standard()
-            //     .withCredentials(new AWSStaticCredentialsProvider(awsCreds))
-            //     .withEndpointConfiguration(
-            //         new EndpointConfiguration(endPoint, "us-east-1"))
-            //     .build();
+            AWSCredentialsProvider credentialsProvider = new DefaultAWSCredentialsProviderChain();
+            String endPoint = "http://doc-task3-domain-nguaqleuaujqdpfrwau5lalk2m."
+                + "us-east-1.cloudsearch.amazonaws.com";
             AmazonCloudSearchDomainClient csClient = new AmazonCloudSearchDomainClient(
-                new AWSStaticCredentialsProvider(awsCreds));
+                credentialsProvider);
             csClient.setEndpoint(endPoint);
 
             UploadDocumentsRequest uploadDocumentsRequest = new UploadDocumentsRequest()
@@ -122,18 +112,13 @@ public class LabelThumbnailService implements RequestHandler<S3Event, String> {
             UploadDocumentsResult uploadDocumentResult = csClient
                                             .uploadDocuments(uploadDocumentsRequest);
 
-
-        // } catch (ParseException e) {
-        //     context.getLogger().log(e.getMessage());
         } catch (IOException e) {
             context.getLogger().log(e.getMessage());
         } catch (NullPointerException e) {
             context.getLogger().log(e.getMessage());
-        // } catch (InterruptedException e) {
-        //     context.getLogger().log(e.getMessage());
         } catch (IndexOutOfBoundsException e) {
             context.getLogger().log(e.getMessage());
-        } catch(AmazonRekognitionException e) {
+        } catch (AmazonRekognitionException e) {
             context.getLogger().log(e.getMessage());
         }
 

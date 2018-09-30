@@ -74,8 +74,8 @@ public class PreviewGenerateService implements RequestHandler<SNSEvent, String> 
 
                     Runtime rt = Runtime.getRuntime();
 
-                    context.getLogger().log("/tmp/ffmpeg -i /tmp/" + srcKey +
-                        " -y -vf fps=1/2 /tmp/" + keyName + ".gif");
+                    context.getLogger().log("/tmp/ffmpeg -i /tmp/" + srcKey
+                        + " -y -vf fps=1/2 /tmp/" + keyName + ".gif");
                     rt.exec("chmod 777 /tmp/ffmpeg");
 
                     String[] command = { "/bin/bash", "-c", "/tmp/ffmpeg -i /tmp/" + srcKey
