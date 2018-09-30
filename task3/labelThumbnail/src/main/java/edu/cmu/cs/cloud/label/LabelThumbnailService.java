@@ -16,14 +16,21 @@ import com.amazonaws.services.lambda.runtime.LambdaRuntime;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.amazonaws.services.lambda.runtime.events.SNSEvent;
+import com.amazonaws.services.rekognition.AmazonRekognition;
+import com.amazonaws.services.rekognition.AmazonRekognitionClientBuilder;
+import com.amazonaws.services.rekognition.model.AmazonRekognitionException;
+import com.amazonaws.services.rekognition.model.DetectLabelsRequest;
+import com.amazonaws.services.rekognition.model.DetectLabelsResult;
 import com.amazonaws.services.rekognition.model.Image;
+import com.amazonaws.services.rekognition.model.Label;
+import com.amazonaws.services.rekognition.model.S3Object;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.event.S3EventNotification.S3EventNotificationRecord;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.S3Object;
+// import com.amazonaws.services.s3.model.S3Object;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -40,6 +47,7 @@ import java.net.URLDecoder;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -62,9 +70,37 @@ public class LabelThumbnailService implements RequestHandler<S3Event, String> {
             String srcBucket = record.getS3().getBucket().getName();
             String srcKey = record.getS3().getObject().getKey();
             AmazonS3 s3Client = new AmazonS3Client();
-            S3Object s3Object = s3Client.getObject(new GetObjectRequest(
-                    srcBucket, srcKey));
+            // S3Object s3Object = s3Client.getObject(new GetObjectRequest(
+            //         srcBucket, srcKey));
+            String srcName = srcKey.split("\\.")[0];
 
+            JSONObject documentJson = new JSONObject();
+            documentJson.put("type", "add");
+            documentJson.put("id", srcName);
+            JSONObject field = new JSONObject();
+            field.put("key", srcName);
+            JSONArray labelsArray = new JSONArray();
+
+
+            AmazonRekognition rekognitionClient = AmazonRekognitionClientBuilder.defaultClient();
+            DetectLabelsRequest request = new DetectLabelsRequest()
+                    .withImage(new Image()
+                    .withS3Object(new S3Object()
+                    .withName(srcKey).withBucket(srcBucket)));
+            DetectLabelsResult detectLabelsResult = rekognitionClient.detectLabels(request);
+            List<Label> labels = detectLabelsResult.getLabels();
+            for (Label label: labels) {
+                labelsArray.add(label.getName());
+            }
+
+            field.put("labels", labelsArray);
+            documentJson.put("fields", field);
+            String documentString = documentJson.toJSONString();
+            documentString = "[" + documentString;
+            documentString = documentString + "]";
+            context.getLogger().log(documentString);
+
+            InputStream document = new ByteArrayInputStream(documentString.getBytes());
 
             // AWSCredentialsProvider credentialsProvider = new DefaultAWSCredentialsProviderChain();
             BasicAWSCredentials awsCreds = new BasicAWSCredentials("AKIAJRZL5C3DD4ELGECA", "DqONcQylceRrNpmArw5+8+VHmxj3G1hHV0y8+uQE");
@@ -79,32 +115,12 @@ public class LabelThumbnailService implements RequestHandler<S3Event, String> {
                 new AWSStaticCredentialsProvider(awsCreds));
             csClient.setEndpoint(endPoint);
 
-
-            JSONObject documentJson = new JSONObject();
-            documentJson.put("type", "add");
-            documentJson.put("id", "test-thumbnail"); // change
-            JSONObject field = new JSONObject();
-            field.put("key", "test-thumbnail"); // change
-            JSONArray labels = new JSONArray();
-            labels.add("hello"); // change
-            labels.add("hi"); // change
-            labels.add("label 3"); // change
-            field.put("labels", labels);
-            documentJson.put("fields", field);
-
-            String documentString = documentJson.toJSONString();
-            documentString = "[" + documentString;
-            documentString = documentString + "]";
-            context.getLogger().log(documentString);
-
-            InputStream document = new ByteArrayInputStream(documentString.getBytes());
-
-
             UploadDocumentsRequest uploadDocumentsRequest = new UploadDocumentsRequest()
                 .withDocuments(document)
                 .withContentLength((long)document.available())
                 .withContentType("application/json");
-            UploadDocumentsResult result = csClient.uploadDocuments(uploadDocumentsRequest);
+            UploadDocumentsResult uploadDocumentResult = csClient
+                                            .uploadDocuments(uploadDocumentsRequest);
 
 
         // } catch (ParseException e) {
@@ -117,8 +133,9 @@ public class LabelThumbnailService implements RequestHandler<S3Event, String> {
         //     context.getLogger().log(e.getMessage());
         } catch (IndexOutOfBoundsException e) {
             context.getLogger().log(e.getMessage());
+        } catch(AmazonRekognitionException e) {
+            context.getLogger().log(e.getMessage());
         }
-
 
         return "OK";
     }
